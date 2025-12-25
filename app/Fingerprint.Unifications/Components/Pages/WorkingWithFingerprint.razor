@@ -1,0 +1,140 @@
+﻿@page "/WorkingWithFingerprint"
+@inject NavigationManager Navigation
+@inject IJSRuntime JsRuntime
+@inherits WorkingWithFingerprintModel
+@rendermode InteractiveServer
+
+<PageTitle>Работа с готовыми аудио-отпечатками</PageTitle>
+
+<link href="/DictionaryOfStyles.css" rel="stylesheet" />
+<style>
+	.header-container {
+		position: relative;
+		width: 100%;
+	}
+
+	.overlay-text {
+		position: absolute;
+		top: 30%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+		width: 100%;
+		text-align: center;
+	}
+
+	h1 {
+		padding: 0 20px;
+	}
+
+	h2 {
+		margin: 20px 10% 10px;
+	}
+</style>
+
+<header class="header-container">
+	<img class="log" src="/Pictures/Headlines/FingerprintGeneration.Wave.png" style="width: 100%;height: auto;" ondragstart="return false;">
+	<div class="overlay-text">
+		<h1>Готовые аудио-отпечатки</h1>
+	</div>
+</header>
+
+<h2 style="margin-top: 3vw;">СПЕКТРАЛЬНЫЙ АНАЛИЗ</h2>
+
+@if (@PathFrequencyHistogramOne != "")
+{
+	<a class="pic" href="@PathFrequencyHistogramOne" data-lightbox="example-1">
+		<img class="pic" src="@PathFrequencyHistogramOne" alt="График спектрального анализа">
+	</a>
+}
+else
+{
+	<p style="color:red">Ошибка загрузки графика</p>
+}
+<h2>МЕТОД MFCC</h2>
+
+@if (@PathMFCCHistogramOne != "")
+{
+	<a class="pic" href="@PathMFCCHistogramOne" data-lightbox="example-2">
+		<img class="pic" src="@PathMFCCHistogramOne" alt="График метода MFCC">
+	</a>
+}
+else
+{
+	<p style="color:red">Ошибка загрузки графика</p>
+}
+<h3 style="margin-top: 3vw; margin-bottom: 3vw; margin-left: 5vw; color: #42aaff">Аудио-отпечатки сохранены в папке Downloads в директории FingerprintResults</h3>
+
+<div class="buttons-container2">
+	<button class="button-download2" @onclick="DownloadChartFFT">Скачать график<br />Спектрального анализа</button>
+	<button class="button-download2" @onclick="DownloadChartMFCC">Скачать график<br />метода MFCC</button>
+</div>
+@code
+{
+	private bool _shouldReload = true;
+
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		if (firstRender && _shouldReload)
+		{
+			// Проверяем, не была ли уже выполнена перезагрузка
+			var hasReloaded = await JsRuntime.InvokeAsync<string>("localStorage.getItem", "audioComparisonReloaded");
+
+			if (hasReloaded != "true")
+			{
+				// Устанавливаем флаг перезагрузки
+				await JsRuntime.InvokeVoidAsync("localStorage.setItem", "audioComparisonReloaded", "true");
+
+				// Перезагружаем страницу с очисткой кэша
+				await JsRuntime.InvokeVoidAsync("eval", "window.location.reload(true)");
+			}
+			else
+			{
+				// Если уже перезагружались - сбрасываем флаг
+				await JsRuntime.InvokeVoidAsync("localStorage.removeItem", "audioComparisonReloaded");
+				_shouldReload = false;
+			}
+		}
+	}
+	public void DownloadChartFFT()
+	{
+		if (PathFrequencyHistogramOne == "")
+		{
+			JsRuntime.InvokeVoidAsync("alert", "ОШИБКА ЗАГРУЗКИ");
+		}
+		else
+		{
+			var workingDir = Path.Combine(
+					Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+					"Downloads");
+
+			Directory.CreateDirectory(workingDir);
+
+			string fullPath = Path.Combine("wwwroot", "Pictures", "Histogram", "frequency_histogram_one.png");
+			string destinationPath = Path.Combine(workingDir, $"frequency_histogram_{DateTime.Now.ToString("yyyyMMdd_HHmmss")}.png");
+
+			File.Copy(fullPath, destinationPath, overwrite: true);
+			JsRuntime.InvokeVoidAsync("alert", "Загрузка выполнена успешно!\nФайл находится в папке Downloads");
+		}
+	}
+	public void DownloadChartMFCC()
+	{
+		if (PathMFCCHistogramOne == "")
+		{
+			JsRuntime.InvokeVoidAsync("alert", "ОШИБКА ЗАГРУЗКИ");
+		}
+		else
+		{
+			var workingDir = Path.Combine(
+				Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+				"Downloads");
+
+			Directory.CreateDirectory(workingDir);
+
+			string fullPath = Path.Combine("wwwroot", "Pictures", "Histogram", "mfcc_histogram_one.png");
+			string destinationPath = Path.Combine(workingDir, $"mfcc_histogram_{DateTime.Now.ToString("yyyyMMdd_HHmmss")}.png");
+
+			File.Copy(fullPath, destinationPath, overwrite: true);
+			JsRuntime.InvokeVoidAsync("alert", "Загрузка выполнена успешно!\nФайл находится в папке Downloads");
+		}
+	}
+}

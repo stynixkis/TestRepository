@@ -1,0 +1,117 @@
+﻿@page "/UploadingAudioForComparison"
+@inject NavigationManager Navigation
+@inject IJSRuntime JsRuntime
+@inherits UploadingAudioForComparisonModel
+@rendermode InteractiveServer
+
+<PageTitle>Загрузка аудио для сравнения</PageTitle>
+
+<link href="/DictionaryOfStyles.css" rel="stylesheet" />
+<style>
+    .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(255, 255, 255, 0.9);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+    }
+
+    .loading-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+    }
+
+    .loading-gif {
+        width: 100px;
+        height: 100px;
+    }
+
+    .loading-text {
+        color: #120a8f;
+        font-size: 2rem;
+        font-weight: bold;
+        text-align: center;
+        animation: pulse 1.5s infinite;
+    }
+
+    @@keyframes pulse {
+        0% {opacity: 1;}
+        50% {opacity: 0.5;}
+        100% {opacity: 1;}
+    }
+
+    .buttons-container {
+        position: relative;
+        z-index: 1;
+    }
+</style>
+
+@if (showLoading)
+{
+	<div class="loading-overlay">
+		<div class="loading-content">
+			<img class="loading-gif" src="/Pictures/loading.gif" alt="Загрузка" />
+			<div class="loading-text">ПОДОЖДИТЕ, ИДЕТ СРАВНЕНИЕ!</div>
+		</div>
+	</div>
+}
+<header>
+    <img class="log" src="/Pictures/Headlines/DownloadSecondAudio.Wave.png" style="width: 100%;height: auto;" ondragstart="return false;">
+	<div class="container">
+		<div class="overlay-text">
+			<h1>Аудио для сравнения</h1>
+		</div>
+	</div>
+</header>
+
+<label class="button-download" style="margin-top: 21vw">
+	📁 Выбрать .wav файл
+    <InputFile OnChange="ExeptionView"
+			   accept=".wav"
+			   style="display: none;" />
+</label>
+
+@code {
+    protected override void OnInitialized()
+    {
+        ClearCache();
+    }
+    public async Task ExeptionView(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            if (!e.File.Name.EndsWith(".wav", StringComparison.OrdinalIgnoreCase))
+            {
+                await JsRuntime.InvokeVoidAsync("alert", "Требуется файл формата .wav");
+                return;
+            }
+            if (e.File.Size > 50 * 1024 * 1024)
+            {
+                await JsRuntime.InvokeVoidAsync("alert", "Размер файла должен быть не больше 50 МБ");
+                return;
+            }
+
+            HandleFileSelected(e);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Ошибка: " + ex.Message);
+        }
+    }
+    public async Task ClearCache()
+    {
+        await JsRuntime.InvokeVoidAsync("eval",
+            "caches.keys().then(function(names) { names.forEach(function(name) { caches.delete(name); }) }");
+
+        await JsRuntime.InvokeVoidAsync("eval",
+            "if ('serviceWorker' in navigator) { navigator.serviceWorker.getRegistrations().then(function(registrations) { registrations.forEach(function(registration) { registration.unregister(); }); } }");
+    }
+}
