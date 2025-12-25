@@ -23,6 +23,6 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
-      run: dotnet build Fingerprint.Unifications/Fingerprint.Unifications.csproj
+      run: dotnet build app/Fingerprint.Unifications/Fingerprint.Unifications.csproj
     - name: Test
-      run: dotnet test Fingerprint.UnificationsTests/Fingerprint.UnificationsTests.csproj
+      run: dotnet test app/Fingerprint.UnificationsTests/Fingerprint.UnificationsTests.csproj
